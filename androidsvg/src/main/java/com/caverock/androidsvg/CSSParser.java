@@ -16,18 +16,18 @@
 
 package com.caverock.androidsvg;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
+import com.caverock.androidsvg.SVG.SvgContainer;
+import com.caverock.androidsvg.SVG.SvgElementBase;
+import com.caverock.androidsvg.SVG.SvgObject;
+import com.caverock.androidsvg.SVGParser.TextScanner;
 
 import org.xml.sax.SAXException;
 
 import android.util.Log;
 
-import com.caverock.androidsvg.SVG.SvgContainer;
-import com.caverock.androidsvg.SVG.SvgElementBase;
-import com.caverock.androidsvg.SVG.SvgObject;
-import com.caverock.androidsvg.SVGParser.TextScanner;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 
 /**
  * A very simple CSS parser that is not very compliant with the CSS spec but
@@ -710,6 +710,7 @@ class CSSParser
    private SVG.Style  parseDeclarations(CSSTextScanner scan) throws SAXException
    {
       SVG.Style  ruleStyle = new SVG.Style();
+
       while (true)
       {
          String  propertyName = scan.nextIdentifier();
@@ -731,7 +732,7 @@ class CSSParser
             scan.skipWhitespace();
          }
          scan.consume(';');
-         SVGParser.processStyleProperty(ruleStyle, propertyName, propertyValue);
+         SVGParser.processStyleProperty(null, ruleStyle, propertyName, propertyValue);
          scan.skipWhitespace();
          if (scan.consume('}'))
             return ruleStyle;

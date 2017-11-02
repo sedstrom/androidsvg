@@ -16,9 +16,6 @@
 
 package com.caverock.androidsvg;
 
-import android.graphics.Matrix;
-import android.util.Log;
-
 import com.caverock.androidsvg.CSSParser.MediaType;
 import com.caverock.androidsvg.SVG.Box;
 import com.caverock.androidsvg.SVG.CSSClipRect;
@@ -46,6 +43,9 @@ import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.ext.DefaultHandler2;
 
+import android.graphics.Matrix;
+import android.util.Log;
+
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -62,15 +62,12 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
-import static android.R.attr.alpha;
-import static com.caverock.androidsvg.SVGAndroidRenderer.colourWithOpacity;
-
 
 /*
  * SVG parser code. Used by SVG class. Should not be called directly.
  */
 
-class SVGParser extends DefaultHandler2
+public class SVGParser extends DefaultHandler2
 {
    private static final String  TAG = "SVGParser";
 
@@ -94,6 +91,15 @@ class SVGParser extends DefaultHandler2
    // For handling <style>
    private boolean        inStyleElement = false;
    private StringBuilder  styleElementContents = null;
+
+   // Theme
+   private SVGThemeContainer theme = null;
+
+   SVGParser(SVGTheme theme) {
+      if(theme != null) {
+         this.theme = new SVGThemeContainer(theme);
+      }
+   }
 
 
    // Define SVG tags
@@ -625,6 +631,7 @@ class SVGParser extends DefaultHandler2
             Log.e(TAG, "Exception thrown closing input stream");
          }
       }
+
       return svgDocument;
    }
 
@@ -889,11 +896,11 @@ class SVGParser extends DefaultHandler2
    //=========================================================================
    // <svg> element
 
-   private void  svg(Attributes attributes) throws SAXException
+   private void svg(Attributes attributes) throws SAXException
    {
       debug("<svg>");
 
-      SVG.Svg  obj = new SVG.Svg();
+      SVG.Svg obj = new SVG.Svg();
       obj.document = svgDocument;
       obj.parent = currentElement;
       parseAttributesCore(obj, attributes);
@@ -2129,7 +2136,7 @@ class SVGParser extends DefaultHandler2
 
       if (currentElement == null)
          throw new SAXException("Invalid document. Root element must be <svg>");
-      SVG.Mask  obj = new SVG.Mask();
+      SVG.Mask obj = new SVG.Mask();
       obj.document = svgDocument;
       obj.parent = currentElement;
       parseAttributesCore(obj, attributes);
@@ -2554,7 +2561,7 @@ class SVGParser extends DefaultHandler2
    //=========================================================================
 
 
-   private void  parseAttributesCore(SvgElementBase obj, Attributes attributes) throws SAXException
+   private void parseAttributesCore(SvgElementBase obj, Attributes attributes) throws SAXException
    {
       for (int i=0; i<attributes.getLength(); i++)
       {
@@ -2562,6 +2569,9 @@ class SVGParser extends DefaultHandler2
          if (qname.equals("id") || qname.equals("xml:id"))
          {
             obj.id = attributes.getValue(i).trim();
+            if (theme != null) {
+               theme.setId(obj.id);
+            }
             break;
          }
          else if (qname.equals("xml:space")) {
@@ -2595,7 +2605,7 @@ class SVGParser extends DefaultHandler2
          switch (SVGAttr.fromString(attributes.getLocalName(i)))
          {
             case style:
-               parseStyle(obj, val);
+               parseStyle(theme, obj, val);
                break;
 
             case CLASS:
@@ -2605,7 +2615,7 @@ class SVGParser extends DefaultHandler2
             default:
                if (obj.baseStyle == null)
                   obj.baseStyle = new Style();
-               processStyleProperty(obj.baseStyle, attributes.getLocalName(i), attributes.getValue(i).trim());
+               processStyleProperty(theme, obj.baseStyle, attributes.getLocalName(i), attributes.getValue(i).trim());
                break;
          }
       }
@@ -2615,7 +2625,7 @@ class SVGParser extends DefaultHandler2
    /*
     * Parse the 'style' attribute.
     */
-   private static void  parseStyle(SvgElementBase obj, String style) throws SAXException
+   private static void  parseStyle(SVGThemeContainer theme, SvgElementBase obj, String style) throws SAXException
    {
       TextScanner  scan = new TextScanner(style.replaceAll("/\\*.*?\\*/", ""));  // regex strips block comments
 
@@ -2634,14 +2644,14 @@ class SVGParser extends DefaultHandler2
          {
             if (obj.style == null)
                obj.style = new Style();
-            processStyleProperty(obj.style, propertyName, propertyValue);
+            processStyleProperty(theme, obj.style, propertyName, propertyValue);
             scan.skipWhitespace();
          }
       }
    }
 
 
-   static void  processStyleProperty(Style style, String localName, String val) throws SAXException
+   static void  processStyleProperty(SVGThemeContainer theme, Style style, String localName, String val) throws SAXException
    {
       if (val.length() == 0) { // The spec doesn't say how to handle empty style attributes.
          return;               // Our strategy is just to ignore them.
@@ -2653,7 +2663,7 @@ class SVGParser extends DefaultHandler2
       {
          case fill:
             try {
-               style.fill = parsePaintSpecifier(val, "fill");
+               style.fill = parsePaintSpecifier(theme, val, "fill");
                style.specifiedFlags |= SVG.SPECIFIED_FILL;
             } catch (SVGParseException e) {
                // Error: Ignore property
@@ -2673,7 +2683,7 @@ class SVGParser extends DefaultHandler2
 
          case stroke:
             try {
-               style.stroke = parsePaintSpecifier(val, "stroke");
+               style.stroke = parsePaintSpecifier(theme, val, "stroke");
                style.specifiedFlags |= SVG.SPECIFIED_STROKE;
             } catch (SVGParseException e) {
                // Error: Ignore property
@@ -2726,7 +2736,7 @@ class SVGParser extends DefaultHandler2
 
          case color:
             try {
-               style.color = parseColour(val);
+               style.color = parseColour(theme, val);
                style.specifiedFlags |= SVG.SPECIFIED_COLOR;
             } catch (SVGParseException e) {
                // Error: Ignore property
@@ -2819,7 +2829,7 @@ class SVGParser extends DefaultHandler2
                style.stopColor = CurrentColor.getInstance();
             } else {
                try {
-                  style.stopColor = parseColour(val);
+                  style.stopColor = parseColour(theme, val);
                } catch (SVGParseException e) {
                   // Error: Ignore property
                   Log.w(TAG, e.getMessage());
@@ -2859,7 +2869,7 @@ class SVGParser extends DefaultHandler2
                style.solidColor = CurrentColor.getInstance();
             } else {
                try {
-                  style.solidColor = parseColour(val);
+                  style.solidColor = parseColour(theme, val);
                } catch (SVGParseException e) {
                   // Error: Ignore property
                   Log.w(TAG, e.getMessage());
@@ -2879,7 +2889,7 @@ class SVGParser extends DefaultHandler2
                style.viewportFill = CurrentColor.getInstance();
             } else {
                try {
-                  style.viewportFill = parseColour(val);
+                  style.viewportFill = parseColour(theme, val);
                } catch (SVGParseException e) {
                   // Error: Ignore property
                   Log.w(TAG, e.getMessage());
@@ -3233,7 +3243,7 @@ class SVGParser extends DefaultHandler2
    /*
     * Parse a paint specifier such as in the fill and stroke attributes.
     */
-   private static SvgPaint parsePaintSpecifier(String val, String attrName) throws SVGParseException
+   private static SvgPaint parsePaintSpecifier(SVGThemeContainer theme, String val, String attrName) throws SVGParseException
    {
       if (val.startsWith("url("))
       {
@@ -3246,15 +3256,15 @@ class SVGParser extends DefaultHandler2
 
          val = val.substring(closeBracket+1).trim();
          if (val.length() > 0)
-            fallback = parseColourSpecifer(val);
+            fallback = parseColourSpecifer(theme, val);
          return new PaintReference(href, fallback);
 
       }
-      return parseColourSpecifer(val);
+      return parseColourSpecifer(theme, val);
    }
 
 
-   private static SvgPaint parseColourSpecifer(String val) throws SVGParseException
+   private static SvgPaint parseColourSpecifer(SVGThemeContainer theme, String val) throws SVGParseException
    {
       switch (val) {
          case NONE:
@@ -3262,7 +3272,7 @@ class SVGParser extends DefaultHandler2
          case CURRENTCOLOR:
             return CurrentColor.getInstance();
          default:
-            return parseColour(val);
+            return parseColour(theme, val);
       }
    }
 
@@ -3270,8 +3280,13 @@ class SVGParser extends DefaultHandler2
    /*
     * Parse a colour definition.
     */
-   private static Colour  parseColour(String val) throws SVGParseException
+   private static Colour parseColour(SVGThemeContainer theme, String val) throws SVGParseException
    {
+
+      if(theme != null && theme.hasColor()) {
+         return new Colour(theme.getColor());
+      }
+
       if (val.charAt(0) == '#')
       {
          IntegerParser  ip = IntegerParser.parseHex(val, 1, val.length());

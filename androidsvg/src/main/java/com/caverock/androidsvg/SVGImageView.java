@@ -16,11 +16,6 @@
 
 package com.caverock.androidsvg;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.lang.reflect.Method;
-
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Paint;
@@ -32,6 +27,11 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
+
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.lang.reflect.Method;
 
 /**
  * SVGImageView is a View widget that allows users to include SVG images in their layouts.
@@ -192,7 +192,7 @@ public class SVGImageView extends ImageView
       {
          try
          {
-            SVG  svg = SVG.getFromResource(context, resourceId);
+            SVG svg = SVG.getFromResource(context, resourceId, null);
             return svg.renderToPicture();
          }
          catch (SVGParseException e)
@@ -227,7 +227,7 @@ public class SVGImageView extends ImageView
       {
          try
          {
-            SVG  svg = SVG.getFromAsset(context.getAssets(), filename);
+            SVG  svg = SVG.getFromAsset(context.getAssets(), filename, null);
             return svg.renderToPicture();
          }
          catch (SVGParseException e)
@@ -261,7 +261,7 @@ public class SVGImageView extends ImageView
       {
          try
          {
-            SVG  svg = SVG.getFromInputStream(is[0]);
+            SVG  svg = SVG.getFromInputStream(is[0], null);
             return svg.renderToPicture();
          }
          catch (SVGParseException e)

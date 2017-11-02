@@ -16,6 +16,10 @@
 
 package com.caverock.androidsvg;
 
+import com.caverock.androidsvg.CSSParser.Ruleset;
+
+import org.xml.sax.SAXException;
+
 import android.content.Context;
 import android.content.res.AssetManager;
 import android.content.res.Resources;
@@ -24,10 +28,6 @@ import android.graphics.Matrix;
 import android.graphics.Picture;
 import android.graphics.RectF;
 import android.util.Log;
-
-import com.caverock.androidsvg.CSSParser.Ruleset;
-
-import org.xml.sax.SAXException;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -104,7 +104,6 @@ public class SVG
    // Map from id attribute to element
    private Map<String, SvgElementBase> idToElementMap = new HashMap<>();
 
-
    enum Unit
    {
       px,
@@ -141,9 +140,9 @@ public class SVG
     * @throws SVGParseException if there is an error parsing the document.
     */
    @SuppressWarnings("WeakerAccess")
-   public static SVG  getFromInputStream(InputStream is) throws SVGParseException
+   public static SVG  getFromInputStream(InputStream is, SVGTheme theme) throws SVGParseException
    {
-      SVGParser  parser = new SVGParser();
+      SVGParser  parser = new SVGParser(theme);
       return parser.parse(is);
    }
 
@@ -156,9 +155,9 @@ public class SVG
     * @throws SVGParseException if there is an error parsing the document.
     */
    @SuppressWarnings({"WeakerAccess", "unused"})
-   public static SVG  getFromString(String svg) throws SVGParseException
+   public static SVG  getFromString(String svg, SVGTheme theme) throws SVGParseException
    {
-      SVGParser  parser = new SVGParser();
+      SVGParser parser = new SVGParser(theme);
       return parser.parse(new ByteArrayInputStream(svg.getBytes()));
    }
 
@@ -172,9 +171,9 @@ public class SVG
     * @throws SVGParseException if there is an error parsing the document.
     */
    @SuppressWarnings("WeakerAccess")
-   public static SVG  getFromResource(Context context, int resourceId) throws SVGParseException
+   public static SVG  getFromResource(Context context, int resourceId, SVGTheme theme) throws SVGParseException
    {
-      return getFromResource(context.getResources(), resourceId);
+      return getFromResource(context.getResources(), resourceId, theme);
    }
 
 
@@ -187,9 +186,9 @@ public class SVG
     * @throws SVGParseException if there is an error parsing the document.
     */
    @SuppressWarnings("WeakerAccess")
-   public static SVG  getFromResource(Resources resources, int resourceId) throws SVGParseException
+   public static SVG  getFromResource(Resources resources, int resourceId, SVGTheme theme) throws SVGParseException
    {
-      SVGParser    parser = new SVGParser();
+      SVGParser    parser = new SVGParser(theme);
       InputStream  is = resources.openRawResource(resourceId);
       try {
          return parser.parse(is);
@@ -205,7 +204,7 @@ public class SVG
 
    /**
     * Read and parse an SVG from the assets folder.
-    * 
+    *
     * @param assetManager the AssetManager instance to use when reading the file.
     * @param filename the filename of the SVG document within assets.
     * @return an SVG instance on which you can call one of the render methods.
@@ -213,9 +212,9 @@ public class SVG
     * @throws IOException if there is some IO error while reading the file.
     */
    @SuppressWarnings("WeakerAccess")
-   public static SVG  getFromAsset(AssetManager assetManager, String filename) throws SVGParseException, IOException
+   public static SVG  getFromAsset(AssetManager assetManager, String filename, SVGTheme theme) throws SVGParseException, IOException
    {
-      SVGParser    parser = new SVGParser();
+      SVGParser parser = new SVGParser(theme);
       InputStream  is = assetManager.open(filename);
       try {
          return parser.parse(is);
