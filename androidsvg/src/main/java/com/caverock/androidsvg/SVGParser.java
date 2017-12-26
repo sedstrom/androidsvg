@@ -579,7 +579,7 @@ public class SVGParser extends DefaultHandler2
    //=========================================================================
 
 
-   SVG  parse(InputStream is) throws SVGParseException
+   SVG parse(InputStream is) throws SVGParseException
    {
       // Transparently handle zipped files (.svgz)
       if (!is.markSupported()) {
